@@ -1,7 +1,7 @@
 const express = require("express");
 const path = require("path");
 const bodyParser = require("body-parser");
-const jsdom = require("jsdom");
+const mongoose = require("mongoose");
 
 const controllers = require("./controllers");
 
@@ -28,7 +28,13 @@ app.use(express.json());
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
-app.get("/", controllers.getHome);
+app.get("/", controllers.getSummary);
+
+app.get("/all", controllers.getAllCountries);
+
+app.get("/country/:country", controllers.getCountry);
+
+app.get("/continent/:continent", controllers.getContinent);
 
 app.listen(PORT, () =>
   console.log(`App listening at http://localhost:${PORT}`)

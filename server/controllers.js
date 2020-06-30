@@ -1,197 +1,24 @@
-const puppeteer = require("puppeteer");
-const mongoose = require("mongoose");
-const async = require("async");
-
+const { getAll } = require("./scrapper");
 const Countries = require("./models/countries");
-const countries = require("./models/countries");
 
-const MONGODB_URI = `mongodb+srv://sleepl:oMLvdUrSfsOlZY3w@cluster0-kwnmr.mongodb.net/test`;
-
-mongoose.connect(MONGODB_URI, {
-  useUnifiedTopology: true,
-  useNewUrlParser: true,
-});
-
-const connection = mongoose.connection;
-
-connection.once("open", function () {
-  console.log("MongoDB database connection established successfully");
-});
-
-const getAll = async () => {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  await page.goto("https://www.worldometers.info/coronavirus/");
-
-  const values = await page.$x('//*[@id="maincounter-wrap"]/div/span');
-
-  let totalCases = await (
-    await values[0].getProperty("textContent")
-  ).jsonValue();
-
-  totalCases = parseInt(totalCases.replace(/,/g, ""));
-
-  let totalDeaths = await (
-    await values[1].getProperty("textContent")
-  ).jsonValue();
-
-  totalDeaths = parseInt(totalDeaths.replace(/,/g, ""));
-
-  let totalRecovered = await (
-    await values[2].getProperty("textContent")
-  ).jsonValue();
-
-  totalRecovered = parseInt(totalRecovered.replace(/,/g, ""));
-
-  browser.close();
-
-  return { totalCases, totalDeaths, totalRecovered };
+exports.getSummary = async (req, res, next) => {
+  const summary = await getAll();
+  res.json(summary);
 };
 
-const convertToNumber = (num) => {
-  if (num === "NaN" || num === " " || num === "" || num === "N/A") {
-    return undefined;
-  } else {
-    return parseInt(num.replace(/,/g, ""));
-  }
+exports.getAllCountries = async (req, res, next) => {
+  const all = await Countries.find();
+  res.json(all);
 };
 
-const getCountries = async () => {
-  let countries = [];
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  await page.goto("https://www.worldometers.info/coronavirus/");
-
-  const countryNodes = await page.$$("a.mt_a");
-  for (country of countryNodes.slice(0, 216)) {
-    let parentNodes = await country.$x("ancestor::td/following-sibling::td");
-
-    let countryText = await (
-      await country.getProperty("textContent")
-    ).jsonValue();
-    countryText = countryText ? String(countryText) : undefined;
-
-    let totalCases = await (
-      await parentNodes[0].getProperty("textContent")
-    ).jsonValue();
-    totalCases = totalCases ? convertToNumber(totalCases) : undefined;
-
-    let newCases = await (
-      await parentNodes[1].getProperty("textContent")
-    ).jsonValue();
-    newCases = newCases ? convertToNumber(newCases) : undefined;
-
-    let totalDeaths = await (
-      await parentNodes[2].getProperty("textContent")
-    ).jsonValue();
-    totalDeaths = totalDeaths ? convertToNumber(totalDeaths) : undefined;
-
-    let newDeaths = await (
-      await parentNodes[3].getProperty("textContent")
-    ).jsonValue();
-    newDeaths = newDeaths ? convertToNumber(newDeaths) : undefined;
-
-    let totalRecovered = await (
-      await parentNodes[4].getProperty("textContent")
-    ).jsonValue();
-    totalRecovered = totalRecovered
-      ? convertToNumber(totalRecovered)
-      : undefined;
-
-    let activeCases = await (
-      await parentNodes[5].getProperty("textContent")
-    ).jsonValue();
-    activeCases = activeCases ? convertToNumber(activeCases) : undefined;
-
-    let seriousCritical = await (
-      await parentNodes[6].getProperty("textContent")
-    ).jsonValue();
-    seriousCritical = seriousCritical
-      ? convertToNumber(seriousCritical)
-      : undefined;
-
-    let totalCasesP1M = await (
-      await parentNodes[7].getProperty("textContent")
-    ).jsonValue();
-    totalCasesP1M = totalCasesP1M ? convertToNumber(totalCasesP1M) : undefined;
-
-    let deathsP1M = await (
-      await parentNodes[8].getProperty("textContent")
-    ).jsonValue();
-    deathsP1M = deathsP1M ? convertToNumber(deathsP1M) : undefined;
-
-    let totalTests = await (
-      await parentNodes[9].getProperty("textContent")
-    ).jsonValue();
-    totalTests = totalTests ? convertToNumber(totalTests) : undefined;
-
-    let testsP1M = await (
-      await parentNodes[10].getProperty("textContent")
-    ).jsonValue();
-    testsP1M = testsP1M ? convertToNumber(testsP1M) : undefined;
-
-    let population = await (
-      await parentNodes[11].getProperty("textContent")
-    ).jsonValue();
-    population = population ? convertToNumber(population) : undefined;
-
-    let continent = await (
-      await parentNodes[12].getProperty("textContent")
-    ).jsonValue();
-    continent = continent ? String(continent) : undefined;
-
-    let scrappedCountry = {
-      name: countryText,
-      totalCases: totalCases,
-      newCases: newCases,
-      totalDeaths: totalDeaths,
-      newDeaths: newDeaths,
-      totalRecovered: totalRecovered,
-      activeCases: activeCases,
-      seriousCritical: seriousCritical,
-      totalCasesP1M: totalCasesP1M,
-      deathsP1M: deathsP1M,
-      totalTests: totalTests,
-      testsP1M: testsP1M,
-      population: population,
-      continent: continent,
-    };
-    await countries.push(scrappedCountry);
-  }
-  browser.close();
-  return countries;
+exports.getCountry = async (req, res, next) => {
+  const country = req.params.country;
+  const countryQuery = await Countries.find({ name: country });
+  res.json(countryQuery);
 };
 
-const saveDataToDb = async () => {
-  const countriesData = await getCountries();
-  for (countryData of countriesData) {
-    const country = await new Countries({
-      name: countryData.name,
-      totalCases: countryData.totalCases,
-      newCases: countryData.newCases,
-      totalDeaths: countryData.totalDeaths,
-      newDeaths: countryData.newDeaths,
-      totalRecovered: countryData.totalRecovered,
-      activeCases: countryData.activeCases,
-      seriousCritical: countryData.seriousCritical,
-      totalCasesP1M: countryData.totalCasesP1M,
-      deathsP1M: countryData.deathsP1M,
-      totalTests: countryData.totalTests,
-      testsP1M: countryData.testsP1M,
-      population: countryData.population,
-      continent: countryData.continent,
-    });
-    try {
-      await country.save();
-    } catch (err) {
-      await console.log(countryData.name);
-      console.log(err);
-    }
-  }
-  console.log("Database successfully created!");
+exports.getContinent = async (req, res, next) => {
+  const continent = req.params.continent;
+  const continentQuery = await Countries.find({ continent: continent });
+  res.json(continentQuery);
 };
-
-// getAll();
-// getCountries();
-
-saveDataToDb();

@@ -1,0 +1,20 @@
+<div class="card" style="width: 18rem;">
+  <div class="card-body">
+    <h5 class="card-title">{{ countryData.name }}</h5>
+    <h6 class="card-subtitle mb-2 text-muted">Total Cases</h6>
+    <p class="card-text">{{ countryData.totalCases }}</p>
+    <h6 class="card-subtitle mb-2 text-muted">New Cases</h6>
+    <p class="card-text">{{ countryData.newCases }}</p>
+    <h6 class="card-subtitle mb-2 text-muted">Total Deaths</h6>
+    <p class="card-text">{{ countryData.totalDeaths }}</p>
+    <h6 class="card-subtitle mb-2 text-muted">New Deaths</h6>
+    <p class="card-text">{{ countryData.newDeaths }}</p>
+    <h6 class="card-subtitle mb-2 text-muted">Total Recovered</h6>
+    <p class="card-text">{{ countryData.totalRecovered }}</p>
+    <h6 class="card-subtitle mb-2 text-muted">Active Cases</h6>
+    <p class="card-text">{{ countryData.activeCases }}</p>
+    <h6 class="card-subtitle mb-2 text-muted">Updated at</h6>
+    <p class="card-text">{{ countryData.updatedAt }}</p>
+    <p *ngFor="let country of timeSeriesData">{{ country }}</p>
+  </div>
+</div>
